@@ -6,7 +6,7 @@ EAF is a GUI application framework that revolutionizes Emacs graphical capabilit
 ## EAF Application Overview
 EAF is an extensible framework, one can develop any Qt5 application and integrate it into Emacs.
 
-| Browser                                          | Markdown Previewer                                          |
+| Browser                                          | Markdown Previewer (support Mermaid and PlantUML)                                          |
 | :--------:                                       | :----:                                                      |
 | <img src="./screenshot/browser.gif" width="400"> | <img src="./screenshot/markdown_previewer.gif" width="400"> |
 
@@ -42,14 +42,9 @@ EAF is an extensible framework, one can develop any Qt5 application and integrat
 |                                                |           |
 
 
-| Mermaid                                          | EAF Interleave                                          |
+| Jupyter                                          | EAF Interleave                                          |
 | :--------:                                       | :----------:                                            |
-| <img src="./screenshot/mermaid.gif" width="400"> | <img src="./screenshot/eaf-interleave.gif" width="400"> |
-|                                                  |                                                         |
-
-| Jupyter                                          |                                                         |
-| :--------:                                       | :----------:                                            |
-| <img src="./screenshot/jupyter.png" width="400"> |                                                         |
+| <img src="./screenshot/jupyter.png" width="400"> | <img src="./screenshot/eaf-interleave.gif" width="400"> |
 |                                                  |                                                         |
 
 ## EmacsConf2020 - Extend Emacs to Modern GUI Applications with EAF
@@ -64,7 +59,6 @@ EAF is an extensible framework, one can develop any Qt5 application and integrat
 ```Bash
 git clone --depth=1 -b master https://github.com/manateelazycat/emacs-application-framework.git ~/.emacs.d/site-lisp/emacs-application-framework/
 ```
-Note: change `master` to `master-full` if you cannot properly use `npm install`.
 
 Alternatively, you can use a [Quelpa recipe](https://github.com/quelpa/quelpa)
 ```Emacs-lisp
@@ -98,6 +92,7 @@ Feel free to inspect the install script yourself. An explanation of each depende
 - [emacs-ctable](https://github.com/kiwanami/emacs-ctable)
 - [emacs-deferred](https://github.com/kiwanami/emacs-deferred)
 - [emacs-epc](https://github.com/kiwanami/emacs-epc)
+- [s.el](https://github.com/magnars/s.el)
 
 4. From here on, you can either add the full path to the EAF installation directory to your Emacs ```load-path```, then add the following to `init.el`:
 
@@ -114,6 +109,7 @@ or, if you use [use-package](https://github.com/jwiegley/use-package), you can u
   (use-package epc :defer t)
   (use-package ctable :defer t)
   (use-package deferred :defer t)
+  (use-package s :defer t :ensure t)
   :custom
   (eaf-browser-continue-where-left-off t)
   :config
@@ -134,15 +130,13 @@ Packages listed as **Core** are mandatory for EAF to work, whereas other package
 | python-pyqtwebengine           | Core                                 | Chromium based web rendering engine           |
 | wmctrl                         | Core                                 | Activate Emacs window input focus             |
 | python-pymupdf                 | PDF Viewer                           | PDF rendering engine                          |
-| python-grip                    | Markdown Previewer                   | Markdown rendering server                     |
 | python-qrcode                  | File Sender, File Receiver, Airshare | Render QR code pointing to local files        |
-| python-pyinotify               | Mermaid                              | Monitor *.mmd file change status              |
-| python-markdown                | Mermaid                              | Covert markdown format to mermaid html format |
 | nodejs                         | Terminal                             | Communicate between browser and local TTY     |
 | aria2                          | Browser                              | Download files from the web                   |
 | libreoffice                    | Doc Viewer                           | Convert doc file to pdf                       |
 | filebrowser-bin                | File Browser                         | Share files between computer and smartphone   |
 | qtconsole                      | Jupyter                              | Provide RichJupyterWidget                     |
+| java-openjdk                      | Markdown Previewer                              | Make mume.js can render PlantUML content                     |
 
 ## Launch EAF Applications
 | Application Name    | Launch                                                                 |
@@ -162,7 +156,6 @@ Packages listed as **Core** are mandatory for EAF to work, whereas other package
 | Airshare            | `M-x eaf-open-airshare`                                                |
 | Mindmap             | `M-x eaf-create-mindmap` or `M-x eaf-open-mindmap`                     |
 | MS Office Viewer    | `M-x eaf-open-office`                                                  |
-| Mermaid             | `M-x eaf-open` Mermaid file (*.mmd)                                    |
 | Jupyter             | `M-x eaf-open-jupyter`                                                 |
 | Demo                | `M-x eaf-open-demo` to verify basic functionality                      |
 
@@ -205,26 +198,15 @@ Both projects are similar in terms of interface, but they are two completely dif
 
 If you've figure them out, PRs are always welcome!
 
+### EAF js-video-player can't play some video on Windows. Why?
+`js-video-player` requires that qtwebengine built against ffmpeg to support proprietary codecs like `h264/aac`.
+
 ### Why doesn't EAF receive input events on WM?
 EAF confirms that the desktop environment or window manager you can work includes: KDE, GNOME2, GNOME3, Mate, Xfce, LXDE, I3, QTILE, Xpra.
 
 We suspect there are some issues with how all the Window Managers implement their x11 protocols.
 
 One workaround is to name of command `wmctrl -m` to the elisp list `eaf-wm-focus-fix-wms`. Fill an issue if it still doesn't work.
-
-### `[EAF] *eaf* aborted (core dumped)` error
-Please check the `*eaf*` buffer, something is wrong on the Python side. Usually due to Python dependencies are not installed correctly.
-
-If you're sure Python dependences are installed correctly, please create an issue with the `*eaf*` buffer content, it contains many clues that can help us locate the problem faster.
-
-### What is Github Personal Access Tokens?
-If you use EAF Markdown Previewer, to get consistent previewing, you need to access [Github Personal access token site](https://github.com/settings/tokens/new?scopes=), fill something in "Token description" and click button "Generate token" to get your personal token. Then set the token:
-
-```Elisp
-(setq eaf-grip-token "yourtokencode")
-```
-
-Although Markdown Previewer works for the first few times by entering empty string when prompted, eventually it stops working and gives "GitHub Rate Limit Reached" error.
 
 ### Proxy
 If you need to use proxy to access internet, one can configure the proxy settings.
@@ -257,7 +239,7 @@ If you encounter a problem with EAF, and it occured after pulling the latest com
 
 For any other problems, please use `emacs -q` and load a minimal setup with only EAF to verify that the bug is reproducible. If `emacs -q` works fine, probably something is wrong with your Emacs config.
 
-If the problem persists, please report it [here](https://github.com/manateelazycat/emacs-application-framework/issues/new).
+If the problem persists, please report it [here](https://github.com/manateelazycat/emacs-application-framework/issues/new) with `*eaf*` buffer content, it contains many clues that can help us locate the problem faster.
 
 If you got segfault error, please use the following way to collect crash information:
 1. Install gdb and turn on option `eaf-enable-debug`

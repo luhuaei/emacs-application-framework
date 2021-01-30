@@ -28,7 +28,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import QLibraryInfo, QTimer
 from PyQt5.QtNetwork import QNetworkProxy
 from PyQt5.QtWidgets import QApplication
-from core.utils import PostGui
+from core.utils import PostGui, string_to_base64
 from core.view import View
 from epc.server import ThreadingEPCServer
 from sys import version_info
@@ -36,6 +36,7 @@ import importlib
 import json
 import logging
 import os
+import platform
 import socket
 import subprocess
 import threading
@@ -111,6 +112,8 @@ class EAF(object):
 
     def webengine_include_private_codec(self):
         ''' Return bool of whether the QtWebEngineProcess include private codec. '''
+        if platform.system() == "Windows":
+            return "False"
         path = os.path.join(QLibraryInfo.location(QLibraryInfo.LibraryExecutablesPath), "QtWebEngineProcess")
         return self.get_command_result("ldd {} | grep libavformat".format(path)) != ""
 
@@ -470,7 +473,11 @@ class EAF(object):
     def eval_in_emacs(self, method_name, args_list):
         code = "(" + str(method_name)
         for arg in args_list:
-            code += " \"{}\"".format(str(arg))
+            arg = str(arg)
+            if len(arg) > 0 and arg[0] == "'":
+                code += " {}".format(arg)
+            else:
+                code += " \"{}\"".format(arg)
         code += ")"
 
         self.emacs_server_connect.send(str.encode(code))
@@ -524,13 +531,13 @@ class EAF(object):
         self.eval_in_emacs('eaf-request-kill-buffer', [buffer_id])
 
     def message_to_emacs(self, message):
-        self.eval_in_emacs('eaf--show-message', [message])
+        self.eval_in_emacs('eaf--show-message', [string_to_base64(message)])
 
     def set_emacs_var(self, var_name, var_value, eaf_specific):
         self.eval_in_emacs('eaf--set-emacs-var', [var_name, var_value, eaf_specific])
 
     def atomic_edit(self, buffer_id, focus_text):
-        self.eval_in_emacs('eaf--atomic-edit', [buffer_id, focus_text])
+        self.eval_in_emacs('eaf--atomic-edit', [buffer_id, string_to_base64(focus_text)])
 
     def export_org_json(self, org_json_content, org_file_path):
         self.eval_in_emacs('eaf--export-org-json', [org_json_content, org_file_path])

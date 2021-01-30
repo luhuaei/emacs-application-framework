@@ -7,7 +7,7 @@
 ;; Copyright (C) 2018, Andy Stewart, all rights reserved.
 ;; Created: 2018-06-15 14:10:12
 ;; Version: 0.5
-;; Last-Updated: Fri Jan 22 14:06:49 2021 (-0500)
+;; Last-Updated: Wed Jan 27 09:25:35 2021 (-0500)
 ;;           By: Mingde (Matthew) Zeng
 ;; URL: https://github.com/manateelazycat/emacs-application-framework
 ;; Keywords:
@@ -86,12 +86,12 @@
   "An interactive function that run install-eaf.sh or install-eaf-win32.js for Linux or Windows respectively."
   (interactive)
   (let ((eaf-dir (file-name-directory (locate-library "eaf"))))
-    (cond ((string-equal system-type "gnu/linux")
+    (cond ((eq system-type 'gnu/linux)
            (let ((default-directory "/sudo::"))
              (shell-command (concat eaf-dir "install-eaf.sh" "&"))))
-          ((string-equal system-type "windows-nt")
+          ((memq system-type '(cygwin windows-nt ms-dos))
            (shell-command (format "node %s" (concat eaf-dir "install-eaf-win32.js" "&"))))
-          ((string-equal system-type "darwin")
+          ((eq system-type 'darwin)
            (user-error "Unfortunately MacOS is not supported, see README for details")))))
 
 (require 'subr-x)
@@ -235,10 +235,6 @@ been initialized."
 
 (defvar eaf-last-frame-height 0)
 
-(defcustom eaf-grip-token ""
-  "Github personal acess token, used by grip."
-  :type 'string)
-
 (defcustom eaf-name "*eaf*"
   "Name of EAF buffer."
   :type 'string)
@@ -260,7 +256,7 @@ Each element has the form (NAME . URL).
 It must defined at `eaf-browser-search-engines'."
   :type 'string)
 
-(defcustom eaf-python-command "python3"
+(defcustom eaf-python-command (if (memq system-type '(cygwin windows-nt ms-dos)) "python3.exe" "python3")
   "The Python interpreter used to run eaf.py."
   :type 'string)
 
@@ -297,6 +293,7 @@ It must defined at `eaf-browser-search-engines'."
     (eaf-terminal-dark-mode . "follow")
     (eaf-terminal-font-size . "13")
     (eaf-terminal-font-family . "")
+    (eaf-markdown-dark-mode . "follow")
     (eaf-mindmap-dark-mode . "follow")
     (eaf-mindmap-save-path . "~/Documents")
     (eaf-mindmap-edit-mode . "false")
@@ -371,7 +368,7 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
     ("M-D" . "select_text")
     ("M-s" . "open_link")
     ("M-S" . "open_link_new_buffer")
-    ("M-d" . "open_link_background_buffer")
+    ("M-B" . "open_link_background_buffer")
     ("C-/" . "undo_action")
     ("M-_" . "redo_action")
     ("M-w" . "copy_text")
@@ -388,6 +385,7 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
     ("M->" . "scroll_to_bottom")
     ("M-p" . "duplicate_page")
     ("M-t" . "new_blank_page")
+    ("M-d" . "toggle_dark_mode")
     ("SPC" . "insert_or_scroll_up_page")
     ("J" . "insert_or_select_left_tab")
     ("K" . "insert_or_select_right_tab")
@@ -528,15 +526,14 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
     ("-" . "zoom_out")
     ("=" . "zoom_in")
     ("0" . "zoom_reset")
+    ("9" . "zoom_toggle")
     ("x" . "close_buffer")
-    ("j" . "scroll_up")
-    ("k" . "scroll_down")
-    ("h" . "scroll_left")
-    ("l" . "scroll_right")
-    ("," . "scroll_up_page")
-    ("." . "scroll_down_page")
-    ("<" . "scroll_to_begin")
-    (">" . "scroll_to_bottom"))
+    ("u" . "rotate_left")
+    ("i" . "rotate_right")
+    ("y" . "flip_horizontal")
+    ("o" . "flip_vertical")
+    ("<f12>" . "open_devtools")
+    )
   "The keybinding of EAF Image Viewer."
   :type 'cons)
 
@@ -606,6 +603,11 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
     ("M-k" . "select_up_node")
     ("M-h" . "select_left_node")
     ("M-l" . "select_right_node")
+    ("SPC" . "toggle_node_selection")
+    ("C-n" . "eaf-send-down-key")
+    ("C-p" . "eaf-send-up-key")
+    ("C-f" . "eaf-send-right-key")
+    ("C-b" . "eaf-send-left-key")
     ("x" . "insert_or_close_buffer")
     ("j" . "insert_or_select_down_node")
     ("k" . "insert_or_select_up_node")
@@ -636,52 +638,6 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
     ("<f12>" . "open_devtools")
     )
   "The keybinding of EAF Mindmap."
-  :type 'cons)
-
-(defcustom eaf-mermaid-keybinding
-  '(("C--" . "zoom_out")
-    ("C-=" . "zoom_in")
-    ("C-0" . "zoom_reset")
-    ("C-s" . "search_text_forward")
-    ("C-r" . "search_text_backward")
-    ("C-n" . "scroll_up")
-    ("C-p" . "scroll_down")
-    ("C-f" . "scroll_right")
-    ("C-b" . "scroll_left")
-    ("C-v" . "scroll_up_page")
-    ("C-w" . "kill_text")
-    ("M-w" . "copy_text")
-    ("M-v" . "scroll_down_page")
-    ("M-<" . "scroll_to_begin")
-    ("M->" . "scroll_to_bottom")
-    ("M-t" . "new_blank_page")
-    ("SPC" . "insert_or_scroll_up_page")
-    ("x" . "insert_or_close_buffer")
-    ("J" . "insert_or_select_left_tab")
-    ("K" . "insert_or_select_right_tab")
-    ("j" . "insert_or_scroll_up")
-    ("k" . "insert_or_scroll_down")
-    ("h" . "insert_or_scroll_left")
-    ("l" . "insert_or_scroll_right")
-    ("d" . "insert_or_scroll_up_page")
-    ("u" . "insert_or_scroll_down_page")
-    ("t" . "insert_or_new_blank_page")
-    ("T" . "insert_or_recover_prev_close_page")
-    ("r" . "insert_or_refresh_page")
-    ("g" . "insert_or_scroll_to_begin")
-    ("x" . "insert_or_close_buffer")
-    ("G" . "insert_or_scroll_to_bottom")
-    ("-" . "insert_or_zoom_out")
-    ("=" . "insert_or_zoom_in")
-    ("0" . "insert_or_zoom_reset")
-    ("m" . "insert_or_save_as_bookmark")
-    ("C-a" . "select_all_or_input_text")
-    ("M-o" . "eval_js")
-    ("M-p" . "eval_js_file")
-    ("<f5>" . "refresh_page")
-    ("<f12>" . "open_devtools")
-    )
-  "The keybinding of EAF Mermaid."
   :type 'cons)
 
 (defcustom eaf-jupyter-keybinding
@@ -718,11 +674,6 @@ Try not to modify this alist directly.  Use `eaf-setq' to modify instead."
 (defcustom eaf-markdown-extension-list
   '("md")
   "The extension list of markdown previewer application."
-  :type 'cons)
-
-(defcustom eaf-mermaid-extension-list
-  '("mmd")
-  "The extension list of mermaid application."
   :type 'cons)
 
 (defcustom eaf-image-extension-list
@@ -820,7 +771,6 @@ Add NAME of command `wmctrl -m' to this list."
     ("markdown-previewer" . eaf-browser-keybinding)
     ("org-previewer" . eaf-browser-keybinding)
     ("mindmap" . eaf-mindmap-keybinding)
-    ("mermaid" . eaf-mermaid-keybinding)
     ("jupyter" . eaf-jupyter-keybinding)
     )
   "Mapping app names to keybinding variables.
@@ -829,8 +779,7 @@ Any new app should add the its name and the corresponding
 keybinding variable to this list.")
 
 (defvar eaf-app-display-function-alist
-  '(("mermaid" . eaf--mermaid-preview-display)
-    ("markdown-previewer" . eaf--markdown-preview-display)
+  '(("markdown-previewer" . eaf--markdown-preview-display)
     ("org-previewer" . eaf--org-preview-display))
   "Mapping app names to display functions.
 
@@ -852,7 +801,6 @@ A bookmark handler function is used as
 (defvar eaf-app-extensions-alist
   '(("pdf-viewer" . eaf-pdf-extension-list)
     ("markdown-previewer" . eaf-markdown-extension-list)
-    ("mermaid" . eaf-mermaid-extension-list)
     ("image-viewer" . eaf-image-extension-list)
     ("video-player" . eaf-video-extension-list)
     ("browser" . eaf-browser-extension-list)
@@ -1074,26 +1022,25 @@ A hashtable, key is url and value is title.")
   "Command to open current path or url with external application."
   (interactive)
   (let ((path-or-url (eaf-get-path-or-url)))
-    (cond ((string-equal system-type "windows-nt")
+    (cond ((memq system-type '(cygwin windows-nt ms-dos))
            (w32-shell-execute "open" path-or-url))
-          ((string-equal system-type "darwin")
+          ((eq system-type 'darwin)
            (concat "open " (shell-quote-argument path-or-url)))
-          ((string-equal system-type "gnu/linux")
+          ((eq system-type 'gnu/linux)
            (let ((process-connection-type nil))
              (start-process "" nil "xdg-open" path-or-url))))))
 
 (defun eaf-call-async (method &rest args)
-  "Call Python EPC function asynchronous."
+  "Call Python EPC function METHOD and ARGS asynchronously."
   (deferred:$
-    (epc:call-deferred eaf-epc-process (read method) args)
-    ))
+    (epc:call-deferred eaf-epc-process (read method) args)))
 
 (defun eaf-call-sync (method &rest args)
-  "Call Python EPC function synchronously."
+  "Call Python EPC function METHOD and ARGS synchronously."
   (epc:call-sync eaf-epc-process (read method) args))
 
 (defun eaf-get-emacs-xid (frame)
-  "Get emacs FRAME xid."
+  "Get Emacs FRAME xid."
   (frame-parameter frame 'window-id))
 
 (defun eaf-serialization-var-list ()
@@ -1330,11 +1277,12 @@ keybinding variable to eaf-app-binding-alist."
   (let* ((eaf-buffer-name (if (equal (file-name-nondirectory url) "")
                               url
                             (file-name-nondirectory url)))
-         (eaf-buffer (generate-new-buffer eaf-buffer-name)))
+         (eaf-buffer (generate-new-buffer eaf-buffer-name))
+         (url-directory (or (file-name-directory url) url)))
     (with-current-buffer eaf-buffer
       (eaf-mode)
-      (when (file-exists-p url)
-        (setq-local default-directory (file-name-directory url)))
+      (when (file-accessible-directory-p url-directory)
+        (setq-local default-directory url-directory))
       ;; `eaf-buffer-url' should record full path of url, otherwise `eaf-open' will open duplicate PDF tab for same url.
       (set (make-local-variable 'eaf--buffer-url) url)
       (set (make-local-variable 'eaf--buffer-app-name) app-name)
@@ -1383,8 +1331,7 @@ keybinding variable to eaf-app-binding-alist."
                                   (eaf-get-emacs-xid frame)
                                   x y w h)
                           view-infos)))))))
-        (eaf-call-async "update_views" (mapconcat #'identity view-infos ","))
-        ))))
+        (eaf-call-async "update_views" (mapconcat #'identity view-infos ","))))))
 
 (defun eaf--delete-org-preview-file (org-file)
   "Delete the org-preview file when given ORG-FILE name."
@@ -1471,6 +1418,16 @@ keybinding variable to eaf-app-binding-alist."
   "Directly send key to EAF Python side."
   (interactive)
   (eaf-call-async "send_key" eaf--buffer-id (key-description (this-command-keys-vector))))
+
+(defun eaf-send-left-key ()
+  "Directly send left key to EAF Python side."
+  (interactive)
+  (eaf-call-async "send_key" eaf--buffer-id "<left>"))
+
+(defun eaf-send-right-key ()
+  "Directly send right key to EAF Python side."
+  (interactive)
+  (eaf-call-async "send_key" eaf--buffer-id "<right>"))
 
 (defun eaf-send-down-key ()
   "Directly send down key to EAF Python side."
@@ -1561,7 +1518,7 @@ of `eaf--buffer-app-name' inside the EAF buffer."
        (throw 'found-eaf t)))))
 
 (defun eaf--show-message (format-string)
-  (message (concat "[EAF/" eaf--buffer-app-name "] " format-string)))
+  (message (concat "[EAF/" eaf--buffer-app-name "] " (base64-decode-string format-string))))
 
 (defun eaf--set-emacs-var (name value eaf-specific)
   "Set Lisp variable NAME with VALUE on the Emacs side.
@@ -1610,7 +1567,7 @@ WEBENGINE-INCLUDE-PRIVATE-CODEC is only useful when app-name is video-player."
          (first-start-app-name (nth 1 first-buffer-info))
          (first-start-args (nth 2 first-buffer-info)))
     (when (and (string-equal first-start-app-name "video-player")
-               webengine-include-private-codec)
+               (string-equal eaf--webengine-include-private-codec "True"))
       (setq first-start-app-name "js-video-player"))
     ;; Start first app.
     (eaf--open-internal first-start-url first-start-app-name first-start-args))
@@ -1672,15 +1629,6 @@ WEBENGINE-INCLUDE-PRIVATE-CODEC is only useful when app-name is video-player."
            (when office-pdf
              (with-current-buffer (file-name-nondirectory url)
                (rename-buffer (concat "[Converted] " (substring args 0 (- office-pdf 1))) t)))))))
-
-(defun eaf--mermaid-preview-display (buf)
-  "Given BUF, split window to show file and previewer."
-  (eaf-split-preview-windows
-   (buffer-local-value
-    'eaf--buffer-url buf))
-  (switch-to-buffer buf)
-  (other-window +1)
-  (markdown-mode))
 
 (defun eaf--markdown-preview-display (buf)
   "Given BUF, split window to show file and previewer."
@@ -1810,7 +1758,8 @@ In that way the corresponding function will be called to retrieve the HTML
   "Wraps URL with prefix http:// if URL does not include it."
   (if (or (string-prefix-p "http://" url)
           (string-prefix-p "https://" url)
-          (string-prefix-p "file://" url))
+          (string-prefix-p "file://" url)
+          (string-prefix-p "chrome://" url))
       url
     (concat "http://" url)))
 
@@ -1968,7 +1917,7 @@ If ALWAYS-NEW is non-nil, always open a new terminal for the dedicated DIR."
                   return app)))
     (if (string-equal app-name "video-player")
         ;; Use Browser play video if QWebEngine include private codec.
-        (if eaf--webengine-include-private-codec "js-video-player" "video-player")
+        (if (string-equal eaf--webengine-include-private-codec "True") "js-video-player" "video-player")
       app-name)))
 
 ;;;###autoload
@@ -1997,11 +1946,6 @@ When called interactively, URL accepts a file that can be opened by EAF."
       ;; Initialize url, app-name and args
       (setq app-name (eaf--get-app-for-extension extension-name))
       (cond
-       ((equal app-name "markdown-previewer")
-        ;; Try get user's github token if `eaf-grip-token' is nil.
-        (setq args
-              (or eaf-grip-token
-                  (read-string (concat "[EAF/" app-name "] Fill your own Github token (or set `eaf-grip-token' with token string): ")))))
        ((equal app-name "browser")
         (setq url (concat "file://" url)))
        ((equal app-name "office")
@@ -2190,7 +2134,7 @@ Make sure that your smartphone is connected to the same WiFi network as this com
     (switch-to-buffer edit-text-buffer)
     (setq-local eaf-mindmap--current-add-mode "")
     (eaf--edit-set-header-line)
-    (insert focus-text)
+    (insert (base64-decode-string focus-text))
     ;; When text line number above
     (when (> (line-number-at-pos) 30)
       (beginning-of-buffer))
@@ -2320,8 +2264,18 @@ The key is the annot id on PAGE."
         "")
     eaf-wm-name))
 
-(defun eaf-activate-emacs-window ()
-  "Activate emacs window."
+(defun eaf--activate-emacs-win32-window()
+  "Use vbs activate emacs win32 window."
+  (let* ((activate-window-file-path
+          (concat eaf-config-location "activate-window.vbs"))
+         (activate-window-file-exists (file-exists-p activate-window-file-path)))
+    (unless activate-window-file-exists
+      (with-temp-file activate-window-file-path
+        (insert "set WshShell = CreateObject(\"WScript.Shell\")\nWshShell.AppActivate Wscript.Arguments(0)")))
+    (shell-command-to-string (format "cscript %s %s" activate-window-file-path (emacs-pid)))))
+
+(defun eaf--activate-emacs-linux-window ()
+  "Activate emacs window by `wmctrl'."
   (if (member (eaf--get-current-desktop-name) eaf-wm-focus-fix-wms)
       ;; When switch app focus in WM, such as, i3 or qtile.
       ;; Emacs window cannot get the focus normally if mouse in EAF buffer area.
@@ -2338,6 +2292,12 @@ The key is the annot id on PAGE."
     (if (executable-find "wmctrl")
         (shell-command-to-string (format "wmctrl -i -a $(wmctrl -lp | awk -vpid=$PID '$3==%s {print $1; exit}')" (emacs-pid)))
       (message "Please install wmctrl to active emacs window."))))
+
+(defun eaf-activate-emacs-window()
+  "Activate emacs window."
+  (if (memq system-type '(cygwin windows-nt ms-dos))
+      (eaf--activate-emacs-win32-window)
+    (eaf--activate-emacs-linux-window)))
 
 (defun eaf-elfeed-open-url ()
   "Display the currently selected item in an eaf buffer."
@@ -2380,8 +2340,9 @@ The key is the annot id on PAGE."
         ))))
 
 (defun eaf--change-default-directory (directory)
-  "Change default directory."
-  (setq default-directory directory))
+  "Change default directory to DIRECTORY."
+  (when (file-accessible-directory-p (or (file-name-directory directory) directory))
+    (setq-local default-directory directory)))
 
 ;;;;;;;;;;;;;;;;;;;; Utils ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun eaf-get-view-info ()
@@ -2404,7 +2365,6 @@ The key is the annot id on PAGE."
                     'eaf-terminal-keybinding
                     'eaf-camera-keybinding
                     'eaf-mindmap-keybinding
-                    'eaf-mermaid-keybinding
                     'eaf-jupyter-keybinding
                     )))
     (erase-buffer)
@@ -2500,8 +2460,9 @@ The key is the annot id on PAGE."
   "Determine file extension EXT can be opened by EAF directly by `find-file'.
 
 You can configure a blacklist using `eaf-find-file-ext-blacklist'"
-  (and (member ext (append eaf-pdf-extension-list eaf-video-extension-list
-                           eaf-image-extension-list eaf-mindmap-extension-list))
+  (and ext
+       (member (downcase ext) (append eaf-pdf-extension-list eaf-video-extension-list
+                                      eaf-image-extension-list eaf-mindmap-extension-list))
        (not (member ext eaf-find-file-ext-blacklist))))
 
 ;; Make EAF as default app for supported extensions.

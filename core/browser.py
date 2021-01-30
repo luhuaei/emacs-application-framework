@@ -170,7 +170,7 @@ class BrowserView(QWebEngineView):
         else:
             self.web_page.findText(self.search_term)
 
-    @interactive()
+    @interactive
     def toggle_adblocker(self):
         ''' Change adblocker status.'''
         if self.buffer.emacs_var_dict["eaf-browser-enable-adblocker"] == "true":
@@ -182,7 +182,7 @@ class BrowserView(QWebEngineView):
             self.load_adblocker()
             self.buffer.message_to_emacs.emit("Successfully enabled adblocker!")
 
-    @interactive()
+    @interactive
     def save_page_password(self):
         ''' Record form data.'''
         if self.buffer.emacs_var_dict["eaf-browser-enable-autofill"] == "true":
@@ -191,7 +191,7 @@ class BrowserView(QWebEngineView):
         else:
             self.buffer.message_to_emacs.emit("Autofill is not enabled! Enable it with C-t")
 
-    @interactive()
+    @interactive
     def toggle_password_autofill(self):
         ''' Toggle Autofill status for password data'''
         if self.buffer.emacs_var_dict["eaf-browser-enable-autofill"] == "false":
@@ -206,7 +206,7 @@ class BrowserView(QWebEngineView):
             else:
                 self.buffer.message_to_emacs.emit("Successfully changed autofill data!")
 
-    @interactive()
+    @interactive
     def search_text_forward(self):
         ''' Forward Search Text.'''
         if self.search_term == "":
@@ -214,7 +214,7 @@ class BrowserView(QWebEngineView):
         else:
             self._search_text(self.search_term)
 
-    @interactive()
+    @interactive
     def search_text_backward(self):
         ''' Backward Search Text.'''
         if self.search_term == "":
@@ -222,7 +222,7 @@ class BrowserView(QWebEngineView):
         else:
             self._search_text(self.search_term, True)
 
-    @interactive()
+    @interactive
     def action_quit(self):
         ''' Quit action.'''
         if self.search_term != "":
@@ -379,12 +379,12 @@ class BrowserView(QWebEngineView):
         ''' Scroll down.'''
         self.eval_js("document.scrollingElement.scrollBy(0, -50)")
 
-    @interactive()
+    @interactive
     def scroll_up_page(self):
         ''' Scroll page up.'''
         self.eval_js("document.scrollingElement.scrollBy({left: 0, top: window.innerHeight/2, behavior: '" + self.buffer.emacs_var_dict["eaf-browser-scroll-behavior"] + "'})")
 
-    @interactive()
+    @interactive
     def insert_or_scroll_up_page(self):
         '''
 If input is focus send space key to insert space.
@@ -412,7 +412,7 @@ Otherwise, scroll page up.
         ''' Scroll to the bottom.'''
         self.eval_js("document.scrollingElement.scrollTo({left: 0, top: document.body.scrollHeight, behavior: '" + self.buffer.emacs_var_dict["eaf-browser-scroll-behavior"] + "'})")
 
-    @interactive()
+    @interactive
     def get_selection_text(self):
         ''' Get the selected text.'''
         return self.execute_js(self.get_selection_text_js)
@@ -439,17 +439,17 @@ Otherwise, scroll page up.
         ''' Cut selected text.'''
         self.triggerPageAction(self.web_page.Cut)
 
-    @interactive()
+    @interactive
     def undo_action(self):
         ''' Undo action.'''
         self.triggerPageAction(self.web_page.Undo)
 
-    @interactive()
+    @interactive
     def redo_action(self):
         ''' Redo action.'''
         self.triggerPageAction(self.web_page.Redo)
 
-    @interactive()
+    @interactive
     def exit_fullscreen(self):
         ''' Exit full screen.'''
         self.triggerPageAction(self.web_page.ExitFullScreen)
@@ -469,7 +469,7 @@ Otherwise, scroll page up.
         ''' Select input text.'''
         self.eval_js(self.select_input_text_js)
 
-    @interactive()
+    @interactive
     def get_url(self):
         ''' Get current url.'''
         return self.url().toString().replace(" ", "%20")
@@ -546,7 +546,7 @@ Otherwise, scroll page up.
 
         self.eval_js("CaretBrowsing.setInitialCursor(true);")
         self.buffer.caret_browsing_mode = True
-        self.buffer.eval_in_emacs.emit('eaf--toggle-caret-browsing', ["t" if self.buffer.caret_browsing_mode else "nil"])
+        self.buffer.eval_in_emacs.emit('eaf--toggle-caret-browsing', ["'t" if self.buffer.caret_browsing_mode else "'nil"])
         self.buffer.caret_toggle_mark()
         self.buffer.caret_next_word()
 
@@ -562,7 +562,7 @@ Otherwise, scroll page up.
         ''' Get the focus text.'''
         return self.execute_js(self.get_focus_text_js)
 
-    @interactive()
+    @interactive
     def set_focus_text(self, new_text):
         ''' Set the focus text.'''
         self.set_focus_text_js = self.set_focus_text_raw.replace("%1", string_to_base64(new_text));
@@ -573,7 +573,7 @@ Otherwise, scroll page up.
         ''' input in focus.'''
         self.execute_js(self.focus_input_js)
 
-    @interactive()
+    @interactive
     def clear_focus(self):
         ''' Clear the focus.'''
         self.eval_js(self.clear_focus_js)
@@ -582,6 +582,12 @@ Otherwise, scroll page up.
     def dark_mode(self):
         ''' Dark mode support.'''
         self.eval_js(self.dark_mode_js)
+
+    @interactive(insert_or_do=True)
+    def disable_dark_mode(self):
+        ''' Remove dark mode support.'''
+        self.eval_js("""Window.EAF_DARK_READER && Window.EAF_DARK_READER.disable();""")
+
 
 class BrowserPage(QWebEnginePage):
     def __init__(self):
@@ -665,7 +671,7 @@ class BrowserBuffer(Buffer):
             self.nopostfix_url_pattern = re.compile("^[^#\?]*")
             self.history_close_file_path = os.path.join(self.config_dir, "browser", "history", "close.txt")
             touch(self.history_log_file_path)
-            with open(self.history_log_file_path, "r") as f:
+            with open(self.history_log_file_path, "r", encoding="utf-8") as f:
                 raw_list = f.readlines()
                 for raw_his in raw_list:
                     his_line = re.match(self.history_pattern, raw_his)
@@ -694,6 +700,7 @@ class BrowserBuffer(Buffer):
         self.progressbar_height = 2
         self.light_mode_mask_color = QColor("#FFFFFF")
         self.dark_mode_mask_color = QColor("#242525")
+        self.is_dark_mode_enabled = self.dark_mode_is_enable()
 
         # Reverse background and foreground color, to help cursor recognition.
         self.caret_foreground_color = QColor(self.emacs_var_dict["eaf-emacs-theme-background-color"])
@@ -845,6 +852,7 @@ class BrowserBuffer(Buffer):
 
             if self.request_url == "https://emacs-china.org/":
                 self.no_need_draw_background = False
+
             if self.current_url.startswith("https://emacs-china.org/t/") and self.request_url.startswith("https://emacs-china.org/t/"):
                 self.no_need_draw_background = current_urls[0] == request_urls[0] or self.request_url == current_urls[0]
             elif self.current_url.startswith("https://livebook.manning.com/book/") and self.request_url.startswith("https://livebook.manning.com/book/"):
@@ -853,6 +861,8 @@ class BrowserBuffer(Buffer):
                 self.no_need_draw_background = True
             elif self.current_url.startswith("https://www.wikiwand.com/"):
                 self.no_need_draw_background = True
+            elif self.current_url.startswith("https://vk.com"):
+                self.no_need_draw_background = True
 
     def dark_mode_is_enable(self):
         ''' Return bool of whether dark mode is enabled.'''
@@ -860,8 +870,7 @@ class BrowserBuffer(Buffer):
         return (self.emacs_var_dict["eaf-browser-dark-mode"] == "true" or \
                 (self.emacs_var_dict["eaf-browser-dark-mode"] == "follow" and self.emacs_var_dict["eaf-emacs-theme-mode"] == "dark")) \
                 and module_name in ["browser", "terminal", "mindmap", "js-video-player"] \
-                and self.url != "devtools://devtools/bundled/devtools_app.html" \
-                and not self.url.startswith("https://www.reddit.com")
+                and self.url != "devtools://devtools/bundled/devtools_app.html"
 
     def init_background_color(self):
         ''' Initialize the background colour.'''
@@ -1146,7 +1155,7 @@ class BrowserBuffer(Buffer):
                 self.buffer_widget.eval_js("CaretBrowsing.setInitialCursor();")
                 self.message_to_emacs.emit("Caret browsing activated.")
                 self.caret_browsing_mode = True
-            self.eval_in_emacs.emit('eaf--toggle-caret-browsing', ["t" if self.caret_browsing_mode else "nil"])
+            self.eval_in_emacs.emit('eaf--toggle-caret-browsing', ["'t" if self.caret_browsing_mode else "'nil"])
 
     def caret_exit(self):
         ''' Exit caret browsing.'''
@@ -1156,74 +1165,74 @@ class BrowserBuffer(Buffer):
 
             self.caret_toggle_browsing()
 
-    @interactive()
+    @interactive
     def caret_next_sentence(self):
         ''' Switch to next line in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('forward', 'sentence');")
 
-    @interactive()
+    @interactive
     def caret_previous_sentence(self):
         ''' Switch to previous line in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('backward', 'sentence');")
 
-    @interactive()
+    @interactive
     def caret_next_line(self):
         ''' Switch to next line in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('forward', 'line');")
 
-    @interactive()
+    @interactive
     def caret_previous_line(self):
         ''' Switch to previous line in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('backward', 'line');")
 
-    @interactive()
+    @interactive
     def caret_next_character(self):
         ''' Switch to next character in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('forward', 'character');")
 
-    @interactive()
+    @interactive
     def caret_previous_character(self):
         ''' Switch to previous character in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('backward', 'character');")
 
-    @interactive()
+    @interactive
     def caret_next_word(self):
         ''' Switch to next word in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('forward', 'word');")
 
-    @interactive()
+    @interactive
     def caret_previous_word(self):
         ''' Switch to previous word in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('backward', 'word');")
 
-    @interactive()
+    @interactive
     def caret_to_bottom(self):
         ''' Switch to next word in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('forward', 'documentboundary');")
 
-    @interactive()
+    @interactive
     def caret_to_top(self):
         ''' Switch to previous word in caret browsing.'''
         if self.caret_browsing_mode:
             self.buffer_widget.eval_js("CaretBrowsing.move('backward', 'documentboundary');")
 
-    @interactive()
+    @interactive
     def caret_rotate_selection(self):
         ''' Rotate selection.'''
         if self.caret_browsing_mode:
             if self.caret_browsing_mark_activated:
                 self.buffer_widget.eval_js("CaretBrowsing.rotateSelection();")
 
-    @interactive()
+    @interactive
     def caret_toggle_mark(self):
         ''' Toggle mark in caret browsing.'''
         if self.caret_browsing_mode:
@@ -1235,7 +1244,7 @@ class BrowserBuffer(Buffer):
                 self.caret_browsing_mark_activated = False
                 self.message_to_emacs.emit("Caret Mark deactivated")
 
-    @interactive()
+    @interactive
     def caret_clear_search(self):
         ''' Clear search text in caret browsing.'''
         if self.caret_browsing_mode:
@@ -1243,7 +1252,7 @@ class BrowserBuffer(Buffer):
                 self.caret_browsing_search_text = ""
                 self.message_to_emacs.emit("Cleared caret search text.")
 
-    @interactive()
+    @interactive
     def caret_search_forward(self):
         ''' Search Text forward in caret browsing.'''
         if self.caret_browsing_mode:
@@ -1253,7 +1262,7 @@ class BrowserBuffer(Buffer):
                 else:
                     self._caret_search_text(self.caret_browsing_search_text)
 
-    @interactive()
+    @interactive
     def caret_search_backward(self):
         ''' Search Text backward in caret browsing.'''
         if self.caret_browsing_mode:
@@ -1273,7 +1282,7 @@ class BrowserBuffer(Buffer):
             if not self.buffer_widget.execute_js("window.find('"+text+"')"):
                 self.message_to_emacs.emit("Unable to find more, please try backward search.")
 
-    @interactive()
+    @interactive
     def caret_translate_text(self):
         if self.buffer_widget.selectedText().strip() != "":
             self.buffer_widget.translate_selected_text.emit(self.buffer_widget.selectedText())
@@ -1289,7 +1298,7 @@ class BrowserBuffer(Buffer):
         self.buffer_widget.copy_text()
         self.message_to_emacs.emit("Copied selected text.")
 
-    @interactive()
+    @interactive
     def copy_code(self):
         ''' Copy code.'''
         self.buffer_widget.get_code_markers()
@@ -1324,7 +1333,7 @@ class BrowserBuffer(Buffer):
         self.buffer_widget.get_link_markers()
         self.send_input_message("Open Link in Background Buffer: ", "jump_link_background_buffer");
 
-    @interactive()
+    @interactive
     def copy_link(self):
         ''' Copy link.'''
         self.buffer_widget.get_link_markers()
@@ -1383,7 +1392,7 @@ class BrowserBuffer(Buffer):
 
             self.history_list.sort(key = lambda x: x.hit, reverse = True)
 
-            with open(self.history_log_file_path, "w") as f:
+            with open(self.history_log_file_path, "w", encoding="utf-8") as f:
                 f.writelines(map(lambda history: history.title + "ᛝ" + history.url + "ᛡ" + str(history.hit) + "\n", self.history_list))
         except Exception:
             import traceback
@@ -1408,7 +1417,7 @@ class BrowserBuffer(Buffer):
         else:
             self.message_to_emacs.emit("There is no browsing history.")
 
-    @interactive()
+    @interactive
     def clear_history(self):
         ''' Clear browsing history.'''
         self.send_input_message("Are you sure you want to clear all browsing history?", "clear_history", "yes-or-no")
@@ -1442,12 +1451,12 @@ class BrowserBuffer(Buffer):
             self.message_to_emacs.emit("Importing {} / {} ...".format(i, total))
         self.message_to_emacs.emit("{} chrome history entries imported.".format(total))
 
-    @interactive()
+    @interactive
     def import_chrome_history(self):
         ''' Import history entries from chrome history db.'''
         self.send_input_message("Are you sure you want to import all history from chrome?", "import_chrome_history", "yes-or-no")
 
-    @interactive()
+    @interactive
     def clear_cookies(self):
         ''' Clear cookies.'''
         self.send_input_message("Are you sure you want to clear all browsing cookies?", "clear_cookies", "yes-or-no")
@@ -1522,6 +1531,14 @@ class BrowserBuffer(Buffer):
             self.set_aspect_ratio(0)
 
         self.refresh_page()
+
+    @interactive
+    def toggle_dark_mode(self):
+        self.is_dark_mode_enabled = not self.is_dark_mode_enabled
+        if self.is_dark_mode_enabled:
+            self.dark_mode()
+        else:
+            self.disable_dark_mode()
 
     @interactive(insert_or_do=True)
     def download_youtube_video(self):

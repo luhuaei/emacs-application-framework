@@ -2,9 +2,9 @@
 
 set -eu
 
-ARCH_PACKAGES=(git nodejs aria2 libreoffice wmctrl xdotool)
+ARCH_PACKAGES=(git nodejs aria2 libreoffice wmctrl xdotool java-openjdk)
 ARCH_PACKAGES+=(python-pyqt5 python-pyqt5-sip python-pyqtwebengine python-qrcode)
-ARCH_PACKAGES+=(python-pyinotify python-markdown python-qtconsole)
+ARCH_PACKAGES+=(python-markdown python-qtconsole)
 
 # System dependencies
 if apt -v &> /dev/null; then
@@ -13,7 +13,7 @@ if apt -v &> /dev/null; then
     # Missing in Ubuntu: filebrowser-bin
 
     sudo apt -y install python3-pyqt5 python3-sip python3-pyqt5.qtwebengine \
-         python3-qrcode python3-feedparser python3-pyinotify \
+         python3-qrcode python3-feedparser \
          python3-markdown python3-qtconsole python3-pygit2
 
 elif dnf &> /dev/null; then
@@ -22,7 +22,7 @@ elif dnf &> /dev/null; then
     # TODO: please add filebrowser-bin if it exists in Fedora repo.
 
     sudo dnf -y install python3-pyqt5-sip pyqtwebengine-devel python3-qrcode \
-         python3-feedparser  python3-inotify python3-markdown \
+         python3-feedparser python3-markdown \
          python3-qtconsole python3-pygit2
 
 elif type pacman &> /dev/null; then
@@ -48,9 +48,9 @@ fi
 
 # Python dependencies
 if type pip3 &>/dev/null; then
-    pip3 install --user pymupdf grip epc
+    pip3 install --user pymupdf epc retrying
 elif type pip &>/dev/null; then
-    pip install --user pymupdf grip epc
+    pip install --user pymupdf epc retrying
 else
     echo "Cannot find pip. Please install it before launching the script again."
     exit 1
